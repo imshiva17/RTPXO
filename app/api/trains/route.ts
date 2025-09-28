@@ -1,57 +1,24 @@
 import { NextResponse } from "next/server"
+import { realTimeEngine } from '../../../lib/real-time-engine'
+import { INDIAN_RAILWAY_STATIONS, TRAIN_SCHEDULES, DataGenerator } from '../../../data/raw-datasets'
 
-// Mock train data API endpoint
 export async function GET() {
   try {
-    // In production, this would connect to actual railway systems
-    // Example: National Rail Enquiries API, GTFS feeds, etc.
+    // Ensure engine is running
+    if (!realTimeEngine.getSystemState().isRunning) {
+      realTimeEngine.start()
+    }
+    
+    const systemState = realTimeEngine.getSystemState()
+    const trains = systemState.trains.map(train => ({
+      ...train,
+      x: train.coordinates.lng * 100,
+      y: train.coordinates.lat * 100,
+      lastUpdate: new Date().toISOString(),
+      eta: train.eta || `${Math.floor(Math.random() * 15) + 1} min`
+    }))
 
-    const mockTrains = [
-      {
-        id: "T001",
-        name: "Express 12345",
-        status: "on-time",
-        delay: 0,
-        platform: "A1",
-        x: 150 + Math.random() * 20,
-        y: 200 + Math.random() * 10,
-        speed: 85 + Math.random() * 10,
-        lastUpdate: new Date().toISOString(),
-        route: "North-South Express",
-        nextStation: "Central Station",
-        eta: "3 min",
-      },
-      {
-        id: "T002",
-        name: "Local 67890",
-        status: Math.random() > 0.7 ? "delayed" : "on-time",
-        delay: Math.random() > 0.7 ? Math.floor(Math.random() * 20) + 5 : 0,
-        platform: "B2",
-        x: 300 + Math.random() * 20,
-        y: 150 + Math.random() * 10,
-        speed: 45 + Math.random() * 15,
-        lastUpdate: new Date().toISOString(),
-        route: "Central Loop",
-        nextStation: "North Junction",
-        eta: "7 min",
-      },
-      {
-        id: "T003",
-        name: "Freight 11111",
-        status: "on-time",
-        delay: 0,
-        platform: "C1",
-        x: 450 + Math.random() * 20,
-        y: 250 + Math.random() * 10,
-        speed: 60 + Math.random() * 10,
-        lastUpdate: new Date().toISOString(),
-        route: "East-West Freight",
-        nextStation: "South Terminal",
-        eta: "12 min",
-      },
-    ]
-
-    return NextResponse.json(mockTrains)
+    return NextResponse.json(trains)
   } catch (error) {
     console.error("Error fetching train data:", error)
     return NextResponse.json({ error: "Failed to fetch train data" }, { status: 500 })

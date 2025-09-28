@@ -32,3 +32,15 @@ export interface SystemMetrics {
   networkEfficiency: number
   lastUpdated: Date
 }
+
+export async function updateTrainStatus(trainId: string, status: string, delayMinutes: number) {
+  return { success: true, trainId, status, delayMinutes }
+}
+
+export async function resolveConflict(conflictId: string, resolution: string) {
+  return { success: true, conflictId, resolution }
+}
+
+export async function acceptRecommendation(recommendationId: string, controllerId: string) {
+  return { success: true, recommendationId, controllerId }
+}

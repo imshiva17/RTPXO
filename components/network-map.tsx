@@ -120,7 +120,15 @@ function SchematicView({
   onSelectTrain,
   getTrainStatusColor,
   getConflictSeverityColor,
-}: any) {
+}: {
+  trains: Train[]
+  stations: Station[]
+  conflicts: Conflict[]
+  selectedTrain: string | null
+  onSelectTrain: (trainId: string | null) => void
+  getTrainStatusColor: (train: Train) => string
+  getConflictSeverityColor: (severity: string) => string
+}) {
   return (
     <div className="h-full p-6 bg-muted/20">
       {/* Railway Line Schematic */}
@@ -130,7 +138,7 @@ function SchematicView({
 
         {/* Stations */}
         <div className="flex justify-between items-center relative z-10">
-          {stations.map((station, index) => (
+          {stations.map((station: Station, index: number) => (
             <div key={station.id} className="flex flex-col items-center">
               {/* Station Icon */}
               <div className="bg-card border-2 border-primary rounded-full p-3 mb-2">
@@ -149,8 +157,8 @@ function SchematicView({
               {/* Trains at Station */}
               <div className="mt-4 space-y-2">
                 {trains
-                  .filter((train) => train.currentStation === station.id)
-                  .map((train) => (
+                  .filter((train: Train) => train.currentStation === station.id)
+                  .map((train: Train) => (
                     <Card
                       key={train.id}
                       className={`cursor-pointer transition-all ${
@@ -178,8 +186,8 @@ function SchematicView({
 
               {/* Conflicts at Station */}
               {conflicts
-                .filter((conflict) => conflict.location === station.id)
-                .map((conflict) => (
+                .filter((conflict: Conflict) => conflict.location === station.id)
+                .map((conflict: Conflict) => (
                   <div key={conflict.id} className="mt-2">
                     <Badge variant="destructive" className="text-xs">
                       <AlertTriangle className="h-3 w-3 mr-1" />
@@ -194,8 +202,8 @@ function SchematicView({
         {/* Moving Trains Between Stations */}
         <div className="absolute top-1/2 left-0 right-0 transform -translate-y-1/2">
           {trains
-            .filter((train) => train.currentStation !== train.nextStation && train.speed > 0)
-            .map((train, index) => (
+            .filter((train: Train) => train.currentStation !== train.nextStation && train.speed > 0)
+            .map((train: Train, index: number) => (
               <div
                 key={train.id}
                 className={`absolute cursor-pointer ${getTrainStatusColor(train)} rounded-full p-2 transform -translate-x-1/2 -translate-y-1/2 ${
@@ -226,7 +234,7 @@ function SchematicView({
             Active Conflicts
           </h3>
           <div className="grid grid-cols-2 gap-4">
-            {conflicts.map((conflict) => (
+            {conflicts.map((conflict: Conflict) => (
               <Card key={conflict.id}>
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-2">

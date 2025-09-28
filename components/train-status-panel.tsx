@@ -1,25 +1,49 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { GPSTracker } from "@/components/gps-tracker"
+import { ManualControl } from "@/components/manual-control"
 import type { Train } from "@/lib/types"
-import { TrainIcon, Clock, MapPin, Search, AlertTriangle } from "lucide-react"
+import { TrainIcon, Clock, MapPin, Search, AlertTriangle, Navigation, Settings } from "lucide-react"
 
 interface TrainStatusPanelProps {
   trains: Train[]
   selectedTrain: string | null
   onSelectTrain: (trainId: string | null) => void
+  onUpdateTrain?: (trainId: string, updates: Partial<Train>) => void
   isLoading: boolean
 }
 
-export function TrainStatusPanel({ trains, selectedTrain, onSelectTrain, isLoading }: TrainStatusPanelProps) {
+export function TrainStatusPanel({ trains, selectedTrain, onSelectTrain, onUpdateTrain, isLoading }: TrainStatusPanelProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState<string>("all")
   const [filterType, setFilterType] = useState<string>("all")
+  const [showGPSTracker, setShowGPSTracker] = useState<string | null>(null)
+  const [showManualControl, setShowManualControl] = useState<string | null>(null)
+  const [realTimeData, setRealTimeData] = useState<Record<string, any>>({})
+  
+  // Real-time updates for dynamic values
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const newData: Record<string, any> = {}
+      trains.forEach(train => {
+        newData[train.id] = {
+          routeProgress: Math.round(Math.random() * 100),
+          distanceToNext: Math.round(Math.random() * 50 + 10),
+          etaMinutes: Math.round(Math.random() * 30 + 15),
+          lastUpdate: new Date().toLocaleTimeString()
+        }
+      })
+      setRealTimeData(newData)
+    }, 2000) // Update every 2 seconds
+    
+    return () => clearInterval(interval)
+  }, [trains])
 
   const filteredTrains = trains.filter((train) => {
     const matchesSearch =
@@ -120,15 +144,6 @@ export function TrainStatusPanel({ trains, selectedTrain, onSelectTrain, isLoadi
 
       <CardContent className="flex-1 p-0">
         <ScrollArea className="h-full">
-          {isLoading ? (
-            <div className="p-4 space-y-3">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="animate-pulse">
-                  <div className="h-20 bg-muted rounded-lg"></div>
-                </div>
-              ))}
-            </div>
-          ) : (
             <div className="p-4 space-y-3">
               {filteredTrains.map((train) => (
                 <Card
@@ -166,68 +181,35 @@ export function TrainStatusPanel({ trains, selectedTrain, onSelectTrain, isLoadi
                         </div>
                       </div>
 
-                      {/* Location and Status */}
-                      <div className="space-y-2 text-xs">
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-muted-foreground">
-                            Current:{" "}
-                            <span className="font-medium text-foreground">{train.currentStation || "In Transit"}</span>
-                          </span>
-                        </div>
 
-                        {train.nextStation && (
-                          <div className="flex items-center gap-2">
-                            <div className="h-3 w-3 flex items-center justify-center">
-                              <div className="h-1 w-1 bg-muted-foreground rounded-full"></div>
-                            </div>
-                            <span className="text-muted-foreground">
-                              Next: <span className="font-medium text-foreground">{train.nextStation}</span>
-                            </span>
-                          </div>
-                        )}
 
-                        {/* Speed and Delay */}
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Clock className="h-3 w-3 text-muted-foreground" />
-                            <span className="text-muted-foreground">{train.speed} km/h</span>
-                          </div>
-
-                          {train.delay > 0 && (
-                            <Badge variant="secondary" className="text-xs">
-                              +{train.delay}m delay
-                            </Badge>
-                          )}
-                        </div>
+                      {/* Action Buttons */}
+                      <div className="flex gap-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="flex-1 bg-transparent hover:bg-primary hover:text-white"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setShowGPSTracker(train.id)
+                          }}
+                        >
+                          <Navigation className="h-3 w-3 mr-1" />
+                          Track
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="flex-1 bg-transparent hover:bg-primary hover:text-white"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setShowManualControl(train.id)
+                          }}
+                        >
+                          <Settings className="h-3 w-3 mr-1" />
+                          Control
+                        </Button>
                       </div>
-
-                      {/* Expanded Details */}
-                      {selectedTrain === train.id && (
-                        <div className="pt-3 border-t space-y-2">
-                          <div className="grid grid-cols-2 gap-2 text-xs">
-                            <div>
-                              <span className="text-muted-foreground">Coordinates:</span>
-                              <p className="font-mono">
-                                {train.coordinates.lat.toFixed(4)}, {train.coordinates.lng.toFixed(4)}
-                              </p>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground">Last Update:</span>
-                              <p>2 min ago</p>
-                            </div>
-                          </div>
-
-                          <div className="flex gap-2">
-                            <Button size="sm" variant="outline" className="flex-1 bg-transparent">
-                              Track
-                            </Button>
-                            <Button size="sm" variant="outline" className="flex-1 bg-transparent">
-                              Control
-                            </Button>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -240,9 +222,25 @@ export function TrainStatusPanel({ trains, selectedTrain, onSelectTrain, isLoadi
                 </div>
               )}
             </div>
-          )}
         </ScrollArea>
       </CardContent>
+
+      {/* GPS Tracker Modal */}
+      {showGPSTracker && (
+        <GPSTracker
+          train={trains.find(t => t.id === showGPSTracker)!}
+          onClose={() => setShowGPSTracker(null)}
+        />
+      )}
+
+      {/* Manual Control Modal */}
+      {showManualControl && onUpdateTrain && (
+        <ManualControl
+          train={trains.find(t => t.id === showManualControl)!}
+          onClose={() => setShowManualControl(null)}
+          onUpdateTrain={onUpdateTrain}
+        />
+      )}
     </div>
   )
 }

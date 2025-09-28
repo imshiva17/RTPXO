@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Progress } from "@/components/ui/progress"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   LineChart,
   Line,
@@ -35,14 +37,45 @@ import {
   Target,
   Download,
   RefreshCw,
+  X,
 } from "lucide-react"
 
 interface PerformanceDashboardProps {
   currentMetrics?: PerformanceMetrics
   onRefresh?: () => void
+  trains?: TrainData[]
+  conflicts?: RealTimeConflict[]
 }
 
-export function PerformanceDashboard({ currentMetrics, onRefresh }: PerformanceDashboardProps) {
+interface RealTimeConflict {
+  id: string
+  type: string
+  trains: string[]
+  severity: 'low' | 'medium' | 'high' | 'critical'
+  location: string
+  estimatedDelay: number
+  aiRecommendation?: {
+    action: string
+    confidence: number
+    reasoning: string
+  }
+}
+
+interface TrainData {
+  id: string
+  name: string
+  number: string
+  type: string
+  status: string
+  delay: number
+  speed: number
+  currentStation: string
+  nextStation: string
+  coordinates: { lat: number; lng: number }
+  priority: number
+}
+
+export function PerformanceDashboard({ currentMetrics, onRefresh, trains = [], conflicts = [] }: PerformanceDashboardProps) {
   const [performanceMonitor] = useState(() => createPerformanceMonitor())
   const [historicalData, setHistoricalData] = useState<PerformanceMetrics[]>([])
   const [alerts, setAlerts] = useState<PerformanceAlert[]>([])
@@ -51,25 +84,26 @@ export function PerformanceDashboard({ currentMetrics, onRefresh }: PerformanceD
   const [systemHealth, setSystemHealth] = useState(0)
   const [selectedTimeframe, setSelectedTimeframe] = useState<"1h" | "24h" | "7d" | "30d">("24h")
   const [isLoading, setIsLoading] = useState(false)
+  const [selectedTrain, setSelectedTrain] = useState<string>('')
+  const [manualAction, setManualAction] = useState<string>('')
 
   useEffect(() => {
     loadPerformanceData()
 
-    // Refresh data every 5 minutes
-    const interval = setInterval(loadPerformanceData, 5 * 60 * 1000)
+    // Refresh data every 5 seconds for real-time updates
+    const interval = setInterval(() => {
+      loadPerformanceData()
+    }, 5000)
     return () => clearInterval(interval)
-  }, [selectedTimeframe])
+  }, [selectedTimeframe, trains, conflicts])
 
   const loadPerformanceData = async () => {
     setIsLoading(true)
     try {
-      // Get historical metrics
       const historical = performanceMonitor.getHistoricalMetrics(
         selectedTimeframe === "1h" ? 1 : selectedTimeframe === "24h" ? 24 : selectedTimeframe === "7d" ? 168 : 720,
       )
       setHistoricalData(historical)
-
-      // Get alerts and trends
       setAlerts(performanceMonitor.getActiveAlerts())
       setTrends(performanceMonitor.getTrends(selectedTimeframe))
       setTargets(performanceMonitor.getTargets())
@@ -81,6 +115,10 @@ export function PerformanceDashboard({ currentMetrics, onRefresh }: PerformanceD
     }
   }
 
+
+
+
+
   const handleRefresh = () => {
     loadPerformanceData()
     onRefresh?.()
@@ -89,6 +127,28 @@ export function PerformanceDashboard({ currentMetrics, onRefresh }: PerformanceD
   const acknowledgeAlert = (alertId: string) => {
     performanceMonitor.acknowledgeAlert(alertId)
     setAlerts(performanceMonitor.getActiveAlerts())
+  }
+
+  const acceptRecommendation = (conflictId: string) => {
+    const conflict = conflicts.find(c => c.id === conflictId)
+    if (conflict?.aiRecommendation) {
+      console.log('Accepting recommendation for conflict:', conflictId)
+      onRefresh?.()
+    }
+  }
+
+  const rejectRecommendation = (conflictId: string) => {
+    console.log('Rejecting recommendation for conflict:', conflictId)
+    onRefresh?.()
+  }
+
+  const executeManualAction = () => {
+    if (selectedTrain && manualAction) {
+      console.log('Executing manual action:', manualAction, 'for train:', selectedTrain)
+      onRefresh?.()
+      setSelectedTrain('')
+      setManualAction('')
+    }
   }
 
   const generateReport = () => {
@@ -170,11 +230,12 @@ export function PerformanceDashboard({ currentMetrics, onRefresh }: PerformanceD
 
       <CardContent className="flex-1 p-0">
         <Tabs defaultValue="overview" className="h-full">
-          <TabsList className="grid w-full grid-cols-4 m-4 mb-0">
+          <TabsList className="grid w-full grid-cols-5 m-4 mb-0">
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="conflicts">Live Conflicts</TabsTrigger>
+            <TabsTrigger value="trains">Train Control</TabsTrigger>
             <TabsTrigger value="metrics">Metrics</TabsTrigger>
             <TabsTrigger value="alerts">Alerts</TabsTrigger>
-            <TabsTrigger value="trends">Trends</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="h-[calc(100%-60px)] overflow-y-auto">
@@ -446,43 +507,133 @@ export function PerformanceDashboard({ currentMetrics, onRefresh }: PerformanceD
             </div>
           </TabsContent>
 
-          <TabsContent value="trends" className="h-[calc(100%-60px)] overflow-y-auto">
+          <TabsContent value="conflicts" className="h-[calc(100%-60px)] overflow-y-auto">
             <div className="p-4 space-y-4">
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm">Performance Analysis</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {trends.map((trend) => (
-                    <div key={trend.metric} className="border rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-medium capitalize">{trend.metric.replace(/([A-Z])/g, " $1").trim()}</h4>
-                        <div className="flex items-center gap-2">
-                          {getTrendIcon(trend.direction)}
-                          <Badge variant="outline">
-                            {trend.changePercentage > 0 ? "+" : ""}
-                            {trend.changePercentage.toFixed(1)}%
-                          </Badge>
+              {conflicts.length === 0 ? (
+                <Alert>
+                  <CheckCircle className="h-4 w-4" />
+                  <AlertDescription>No active conflicts detected. All systems operating normally.</AlertDescription>
+                </Alert>
+              ) : (
+                conflicts.map((conflict) => (
+                  <Card key={conflict.id} className="border-l-4 border-l-orange-500">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-sm font-medium">
+                          {conflict.type.replace('_', ' ').toUpperCase()} - {conflict.location}
+                        </CardTitle>
+                        <Badge variant={conflict.severity === 'critical' ? 'destructive' : conflict.severity === 'high' ? 'secondary' : 'outline'}>
+                          {conflict.severity.toUpperCase()}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="grid grid-cols-2 gap-4 text-xs">
+                        <div>
+                          <span className="font-medium text-muted-foreground">Affected Trains:</span>
+                          <p>{conflict.trains.join(', ')}</p>
+                        </div>
+                        <div>
+                          <span className="font-medium text-muted-foreground">Est. Delay:</span>
+                          <p>{conflict.estimatedDelay} minutes</p>
                         </div>
                       </div>
+                      
+                      {conflict.aiRecommendation && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                          <h4 className="font-semibold text-sm text-blue-800 mb-2">AI Recommendation</h4>
+                          <p className="text-sm mb-2">{conflict.aiRecommendation.action}</p>
+                          <p className="text-xs text-muted-foreground mb-3">{conflict.aiRecommendation.reasoning}</p>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-medium">Confidence: {Math.round(conflict.aiRecommendation.confidence * 100)}%</span>
+                            <div className="flex gap-2">
+                              <Button size="sm" onClick={() => acceptRecommendation(conflict.id)}>
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Accept
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={() => rejectRecommendation(conflict.id)}>
+                                <AlertTriangle className="h-3 w-3 mr-1" />
+                                Reject
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+          </TabsContent>
 
-                      <p className="text-sm text-muted-foreground">
-                        {trend.direction === "up" &&
-                          trend.metric !== "averageDelay" &&
-                          "Performance is improving over the selected timeframe."}
-                        {trend.direction === "down" &&
-                          trend.metric !== "averageDelay" &&
-                          "Performance is declining and may need attention."}
-                        {trend.direction === "up" &&
-                          trend.metric === "averageDelay" &&
-                          "Delays are increasing and need immediate attention."}
-                        {trend.direction === "down" &&
-                          trend.metric === "averageDelay" &&
-                          "Delays are decreasing, showing improvement."}
-                        {trend.direction === "stable" && "Performance is stable with minimal variation."}
-                      </p>
+          <TabsContent value="trains" className="h-[calc(100%-60px)] overflow-y-auto">
+            <div className="p-4 space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">Manual Train Control</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <label className="text-sm font-medium">Select Train</label>
+                      <Select value={selectedTrain} onValueChange={setSelectedTrain}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Choose train..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {trains.map(train => (
+                            <SelectItem key={train.id} value={train.id}>
+                              {train.name} ({train.number})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
-                  ))}
+                    <div>
+                      <label className="text-sm font-medium">Action</label>
+                      <Select value={manualAction} onValueChange={setManualAction}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Choose action..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="hold">Hold Train</SelectItem>
+                          <SelectItem value="proceed">Proceed</SelectItem>
+                          <SelectItem value="reroute">Reroute</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button onClick={executeManualAction} disabled={!selectedTrain || !manualAction}>
+                      Execute Action
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">Active Trains ({trains.length})</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {trains.map(train => (
+                      <div key={train.id} className="flex items-center justify-between p-2 border rounded">
+                        <div>
+                          <div className="font-medium text-sm">{train.name}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {train.number} • {train.currentStation} → {train.nextStation}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <Badge variant={train.status === 'on_time' ? 'default' : 'destructive'} className="text-xs">
+                            {train.status.replace('_', ' ')}
+                          </Badge>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {train.speed} km/h • Delay: {train.delay}m
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
             </div>

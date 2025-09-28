@@ -11,12 +11,12 @@
   --card-foreground: oklch(0.15 0 0); /* #374151 - Text color inside cards */
   --popover: oklch(0.98 0 0);
   --popover-foreground: oklch(0.15 0 0);
-  --primary: oklch(0.45 0.02 264); /* Railway blue */
+  --primary: oklch(42.214% 0.04765 261.244); /* Railway blue */
   --primary-foreground: oklch(0.98 0 0);
   --secondary: oklch(0.92 0 0);
   --secondary-foreground: oklch(0.15 0 0);
   --muted: oklch(0.92 0 0);
-  --muted-foreground: oklch(0.55 0 0);
+  --muted-foreground: oklch(29.698% 0.05839 21.168);
   --accent: oklch(0.65 0.15 142); /* Railway green for signals */
   --accent-foreground: oklch(0.98 0 0);
   --destructive: oklch(0.55 0.22 25); /* Railway red for alerts */ 

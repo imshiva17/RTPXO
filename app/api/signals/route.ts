@@ -1,37 +1,28 @@
 import { NextResponse } from "next/server"
+import { realTimeEngine } from '../../../lib/real-time-engine'
+import { REAL_TIME_SENSOR_DATA } from '../../../data/raw-datasets'
 
 export async function GET() {
   try {
-    const statuses = ["green", "yellow", "red"]
+    const systemState = realTimeEngine.getSystemState()
+    const signals = systemState.signals.map(signal => ({
+      ...signal,
+      x: signal.coordinates.lng * 100,
+      y: signal.coordinates.lat * 100,
+      lastUpdate: new Date().toISOString(),
+      location: signal.stationId
+    }))
 
-    const mockSignals = [
-      {
-        id: "S001",
-        status: statuses[Math.floor(Math.random() * statuses.length)],
-        x: 200,
-        y: 180,
-        lastUpdate: new Date().toISOString(),
-        location: "Central Junction",
-      },
-      {
-        id: "S002",
-        status: statuses[Math.floor(Math.random() * statuses.length)],
-        x: 350,
-        y: 130,
-        lastUpdate: new Date().toISOString(),
-        location: "North Approach",
-      },
-      {
-        id: "S003",
-        status: statuses[Math.floor(Math.random() * statuses.length)],
-        x: 500,
-        y: 230,
-        lastUpdate: new Date().toISOString(),
-        location: "South Terminal",
-      },
-    ]
+    const sensorSignals = REAL_TIME_SENSOR_DATA.signalStatus.map(sensor => ({
+      id: sensor.signalId,
+      status: sensor.status,
+      x: Math.random() * 500 + 100,
+      y: Math.random() * 300 + 100,
+      lastUpdate: new Date(sensor.timestamp).toISOString(),
+      location: sensor.location
+    }))
 
-    return NextResponse.json(mockSignals)
+    return NextResponse.json([...signals, ...sensorSignals])
   } catch (error) {
     console.error("Error fetching signal data:", error)
     return NextResponse.json({ error: "Failed to fetch signal data" }, { status: 500 })

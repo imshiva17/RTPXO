@@ -22,7 +22,7 @@ export function MiniNetworkHeatmap({ trains, stations, conflicts, onExpandMap }:
   const getSegmentCongestion = (stationId: string) => {
     const trainsAtStation = trains.filter((t) => t.currentStation === stationId).length
     const conflictsAtStation = conflicts.filter((c) =>
-      c.involvedTrains.some((trainId) => trains.find((t) => t.id === trainId)?.currentStation === stationId),
+      c.trains.some((trainId) => trains.find((t) => t.id === trainId)?.currentStation === stationId),
     ).length
 
     if (conflictsAtStation > 0) return "critical"

@@ -9,7 +9,9 @@ export interface Station {
     lng: number
   }
   platforms: number
-  signals: Signal[]
+  zone?: string
+  division?: string
+  signals?: Signal[]
 }
 
 export interface Signal {
@@ -39,6 +41,12 @@ export interface Train {
     lat: number
     lng: number
   }
+  position?: {
+    x: number
+    y: number
+  }
+  route?: string
+  eta?: string
   schedule: TrainSchedule[]
 }
 
@@ -115,4 +123,13 @@ export interface SimulationScenario {
     blockages: { trackId: string; duration: number }[]
   }
   expectedOutcome: KPI
+}
+
+export interface SimulationState {
+  trains: Train[]
+  stations: Station[]
+  tracks: Track[]
+  conflicts: Conflict[]
+  timestamp: Date
+  kpis: KPI
 }
