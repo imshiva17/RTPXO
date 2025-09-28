@@ -1,5 +1,6 @@
 # Install npm 
 node_modules/
+.next/
 # Install yarn
 
 npm run dev
