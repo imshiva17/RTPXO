@@ -1,4 +1,4 @@
-// File: C:\Users\shiva\Desktop\Main sih\train-traffic-controller\app\layout.tsx
+// File: C:\Users\shiva\Desktop\SIH Projects\Main sih\train-traffic-controller\app\layout.tsx
 import * as entry from '../../../app/layout.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

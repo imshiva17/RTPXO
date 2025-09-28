@@ -1,4 +1,4 @@
-// File: C:\Users\shiva\Desktop\Main sih\train-traffic-controller\app\api\trains\route.ts
+// File: C:\Users\shiva\Desktop\SIH Projects\Main sih\train-traffic-controller\app\api\trains\route.ts
 import * as entry from '../../../../../app/api/trains/route.js'
 import type { NextRequest } from 'next/server.js'
 
